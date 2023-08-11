@@ -1,0 +1,6 @@
+__pycache__
+egs/
+dist
+denoisenet.egg-info
+checkpoint
+*.swp
