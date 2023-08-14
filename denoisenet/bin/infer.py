@@ -40,7 +40,7 @@ class NeuralDenoiseNet(object):
         self.inference = self.infer
     
     def _add_reverb(self, audio : torch.Tensor) -> torch.Tensor:
-        # add reverberation
+        # add reverberation, audio=(c, t)
         reverberance = np.random.randint(20, 80)  # Range: (0,100)
         hf_damping = np.random.randint(20, 80)  # Range: (0,100)
         room_scale = np.random.randint(20, 80)  # Range: (0,100)
@@ -51,15 +51,14 @@ class NeuralDenoiseNet(object):
             ["reverb", f"{reverberance}", f"{hf_damping}", f"{room_scale}",
                 f"{stereo_depth}", f"{pre_delay}", f"{web_gain_db}"]
         ]
-        audio, _ = torchaudio.sox_effects.apply_effects_tensor(audio, self.sampling_rate, effects)
-        audio = audio[:1]        
+        audio, _ = torchaudio.sox_effects.apply_effects_tensor(audio, self.sampling_rate, effects)       
         audio = torch.clamp(audio, -1., 1.)
 
         return audio
     
     @torch.no_grad()
     def infer(self, y, add_reverb=False, tta=False):
-        # y: mixture of vocal and noise, dtype=Tensor, shape=(B=1,T)
+        # y: mixture of vocal and noise, dtype=Tensor, shape=(B, T)
         if add_reverb:
             y = self._add_reverb(y)
         x = self.model.infer(y, tta=tta)
@@ -161,42 +160,33 @@ def main():
             start = time.time()
             
             # load pcm
-            ys, sr = sf.read(wavfn, dtype=np.float32) # x: (T,C) or (T,)
+            y, sr = sf.read(wavfn, dtype=np.float32) # x: (T, C) or (T,)
             if sr != sampling_rate:
-                ys = librosa.resample(ys, orig_sr=sr, target_sr=sampling_rate, axis=0)
-            if ys.ndim == 1:
-                ys = ys.reshape(-1, 1)
-            xs = np.zeros_like(ys)
+                y = librosa.resample(y, orig_sr=sr, target_sr=sampling_rate, axis=0)
+            y = y.T if y.ndim == 2 else y.reshape(1, -1) # (B=C, T)
+            y /= abs(y).max() * 2
             
-            for c in range(ys.shape[1]):
-                # Only support mono channel
-                y = ys[:, c]
-                y /= abs(y).max() * 2
-                
-                # inference
-                y = torch.from_numpy(y).view(1, -1)
-                x = model.infer(y, add_reverb=args.add_reverb, tta=args.tta)
-                x = x.cpu().numpy().flatten()
-                x /= abs(x).max() * 2
+            # inference
+            y = torch.from_numpy(y)
+            x = model.infer(y, add_reverb=args.add_reverb, tta=args.tta)
+            x = x.cpu().numpy()
+            x /= abs(x).max() * 2
 
-                # trim silence
-                if args.trim_silence and ys.ndim <= 1:
-                    _, (xs, xe) = librosa.effects.trim(x, top_db=30)
-                    xs -= int(0.05 * sampling_rate)
-                    xe += int(0.05 * sampling_rate)
-                    if xs < 0: xs = 0
-                    x = x[xs:xe]
-                
-                xs[:, c] = x
-            
-            if xs.shape[1] == 1:
-                xs = xs.flatten()
+            # trim silence
+            if args.trim_silence and x.shape[0] == 1:
+                _, (xs, xe) = librosa.effects.trim(x[0], top_db=30)
+                xs -= int(0.05 * sampling_rate)
+                xe += int(0.05 * sampling_rate)
+                if xs < 0: xs = 0
+                x = x[:, xs:xe]
+
+            x = x.flatten() if x.shape[0] == 1 else x.T # (T, C) or (T,)
             
             # save as PCM 16 bit wav files
             sf.write(os.path.join(args.outdir, f"{utt_id}.wav"),
-                xs, sampling_rate, "PCM_16")
+                x, sampling_rate, "PCM_16")
             
-            rtf = (time.time() - start) / ((xs.ndim * len(xs) * sampling_rate))
+            rtf = (time.time() - start) / ((x.ndim * len(x) * sampling_rate))
             pbar.set_postfix({"RTF": rtf})
             total_rtf += rtf
 

@@ -10,7 +10,7 @@ chmod +x utils/*
 verbose=1      # verbosity level (lower is less info)
 n_gpus=2       # number of gpus in training
 
-master_port=25600 
+master_port=26600 
 
 # NOTE(kan-bayashi): renamed to conf to avoid conflict in parse_options.sh
 conf=conf/resunetdecouple24k.yaml

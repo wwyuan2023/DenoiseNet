@@ -48,8 +48,8 @@ lambda_spec: 1.0
 ###########################################################
 #                  DATA LOADER SETTING                    #
 ###########################################################
-batch_size: 24
-batch_max_steps: 48000
+batch_size: 16
+batch_max_steps: 72000
 reverb_rate: 0.2
 vocal_mixup_rate: 0.1
 noise_mixup_rate: 0.1

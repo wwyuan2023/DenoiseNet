@@ -231,7 +231,7 @@ class BSRNN(nn.Module):
         # y: mixture signal, shape=(B, t), t=audio length        
         segment_length = int(segment_seconds * self.sampling_rate)
         hop_length = segment_length // 2
-        overlap_length = segment_length - overlap_length
+        overlap_length = segment_length - hop_length
         window = torch.hann_window(overlap_length*2).to(y.device)
         inc_window, dec_window = window[:overlap_length].unsqueeze(0), window[overlap_length:].unsqueeze(0)
         
@@ -251,8 +251,9 @@ class BSRNN(nn.Module):
             start = start + hop_length
             end = end + hop_length
             segments.append(segment)
-        assert end == y.size(1), f"{end}, {y.size()}"
-        ys = torch.cat(segments, dim=0) # (B*S, L)
+        assert end - hop_length == y.size(1), f"{end}, {y.size()}"
+        ys = torch.stack(segments, dim=0) # (S, B, L)
+        ys = ys.view(-1, ys.size(-1)) # (S*B, L)
         
         # stft
         sy = self._stft(ys)
@@ -270,21 +271,21 @@ class BSRNN(nn.Module):
         sx_hat = sy * M
         
         # istft
-        xs_hat = self._istft(sx_hat) # (B*S, L)
+        xs_hat = self._istft(sx_hat) # (S*B, L)
         
         # combine segments
         assert xs_hat.size(1) == segment_length, f"{segment_length}, {xs_hat.size()}"
-        xs_hat = xs_hat.reshape(batch_size, -1, segment_length)
+        xs_hat = xs_hat.view(-1, batch_size, segment_length) # (S, B, L)
         output = torch.zeros_like(y)
-        output[:, :segment_length] = xs_hat[:, 0]
-        start, end = hop_length, segment_length
-        for i in range(1, xs_hat.size(1)):
-            output[:, start:end] *= dec_window
-            xs_hat[:, i, :overlap_length] *= inc_window
-            output[:, start:end] += xs_hat[:, i]
+        output[:, :segment_length] = xs_hat[0]
+        start = hop_length
+        for i in range(1, xs_hat.size(0)):
+            output[:, start:start+overlap_length] *= dec_window
+            xs_hat[i, :, :overlap_length] *= inc_window
+            output[:, start:start+segment_length] += xs_hat[i]
             start += hop_length
-            end += hop_length
         
+        pad1 = None if pad1 == 0 else -pad1
         x_hat = output[:, pad0:pad1]
         assert x_hat.size(-1) == orig_length, f"{orig_length}, {x_hat.size()}"
         

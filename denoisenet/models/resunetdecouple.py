@@ -139,12 +139,12 @@ class ResUNetDecouple(nn.Module):
         )
         
         # encoder
-        self.encoder1 = _REBlock( 32,  32, factor=downsample_factors[0], act_func="LeakyReLU")
-        self.encoder2 = _REBlock( 32,  64, factor=downsample_factors[1], act_func="LeakyReLU")
-        self.encoder3 = _REBlock( 64, 128, factor=downsample_factors[2], act_func="LeakyReLU")
-        self.encoder4 = _REBlock(128, 256, factor=downsample_factors[3], act_func="LeakyReLU")
-        self.encoder5 = _REBlock(256, 256, factor=downsample_factors[4], act_func="LeakyReLU")
-        self.encoder6 = _REBlock(256, 512, factor=downsample_factors[5], act_func="LeakyReLU")
+        self.encoder1 = _REBlock( 32,  64, factor=downsample_factors[0], act_func="LeakyReLU")
+        self.encoder2 = _REBlock( 64, 128, factor=downsample_factors[1], act_func="LeakyReLU")
+        self.encoder3 = _REBlock(128, 192, factor=downsample_factors[2], act_func="LeakyReLU")
+        self.encoder4 = _REBlock(192, 256, factor=downsample_factors[3], act_func="LeakyReLU")
+        self.encoder5 = _REBlock(256, 384, factor=downsample_factors[4], act_func="LeakyReLU")
+        self.encoder6 = _REBlock(384, 512, factor=downsample_factors[5], act_func="LeakyReLU")
         
         # bottleneck
         self.bottle1 = _ICBlock(512, act_func="ReLU")
@@ -153,32 +153,31 @@ class ResUNetDecouple(nn.Module):
         self.bottle4 = _ICBlock(512, act_func="ReLU")
         
         # decoder
-        self.decoder6 = _RDBlock(512, 256, factor=downsample_factors[5], act_func="LeakyReLU")
-        self.decoder5 = _RDBlock(256, 256, factor=downsample_factors[4], act_func="LeakyReLU")
-        self.decoder4 = _RDBlock(256, 128, factor=downsample_factors[3], act_func="LeakyReLU")
-        self.decoder3 = _RDBlock(128,  64, factor=downsample_factors[2], act_func="LeakyReLU")
-        self.decoder2 = _RDBlock( 64,  32, factor=downsample_factors[1], act_func="LeakyReLU")
-        self.decoder1 = _RDBlock( 32,  32, factor=downsample_factors[0], act_func="LeakyReLU")
+        self.decoder6 = _RDBlock(512, 384, factor=downsample_factors[5], act_func="LeakyReLU")
+        self.decoder5 = _RDBlock(384, 256, factor=downsample_factors[4], act_func="LeakyReLU")
+        self.decoder4 = _RDBlock(256, 192, factor=downsample_factors[3], act_func="LeakyReLU")
+        self.decoder3 = _RDBlock(192, 128, factor=downsample_factors[2], act_func="LeakyReLU")
+        self.decoder2 = _RDBlock(128,  64, factor=downsample_factors[1], act_func="LeakyReLU")
+        self.decoder1 = _RDBlock( 64,  32, factor=downsample_factors[0], act_func="LeakyReLU")
         
         # postnet
         self.postnet = nn.ModuleList()
-        for kernel_size in (1, 3, 5):
+        for kernel_size in (3, 5, 7):
             padding = int(kernel_size / 2)
             self.postnet.append(
                 nn.Sequential(
                     nn.LayerNorm(fft_size//2),
+                    nn.LeakyReLU(),
                     nn.Conv2d(32, 32, kernel_size, padding=padding),
-                    nn.LeakyReLU(0.2),
+                    nn.LayerNorm(fft_size//2),
+                    nn.LeakyReLU(),
                     nn.Conv2d(32, 32, kernel_size, padding=padding),
-                    nn.LeakyReLU(0.2),
                 )
             )
         
         # output
         self.mask = nn.Conv2d(32, 1, 1)
         self.twiddle = nn.Conv2d(32, 2, 1)
-        self.mag = nn.Conv2d(32, 1, 1)
-        self.phase = nn.Conv2d(32, 2, 1)
         
         # reset parameters
         self.reset_parameters()
@@ -268,19 +267,14 @@ class ResUNetDecouple(nn.Module):
         
         # postnet
         x0 = sum([f(x0) for f in self.postnet])
+        x0 = F.leaky_relu(x0)
         
         # output
-        mx_hat1 = torch.sigmoid(self.mask(x0).squeeze(1).transpose(1,2)) * my # (B, F-1, T-1)
+        mx_hat = torch.sigmoid(self.mask(x0).squeeze(1).transpose(1,2)) * my # (B, F-1, T-1)
         P = F.normalize(self.twiddle(x0).transpose(1,3), p=2.0, dim=-1, eps=1e-7) # (B, F-1, T-1, 2)
         real = (py[..., 0] * P[..., 0] - py[..., 1] * P[..., 1]).contiguous()
         imag = (py[..., 1] * P[..., 0] + py[..., 0] * P[..., 1]).contiguous()
-        sx_hat1 = torch.stack((real*mx_hat1, imag*mx_hat1), dim=-1) #(B, F-1, T-1, 2)
-        
-        mx_hat2 = F.relu(self.mag(x0).squeeze(1).transpose(1,2))  # (B, F-1, T-1)
-        px_hat2 = F.normalize(self.phase(x0).transpose(1,3), p=2.0, dim=-1, eps=1e-7) # (B, F-1, T-1, 2)
-        sx_hat2 = mx_hat2.unsqueeze(-1) * px_hat2
-        
-        sx_hat = sx_hat1 + sx_hat2 # (B, F-1, T-1, 2)
+        sx_hat = torch.stack((real*mx_hat, imag*mx_hat), dim=-1) #(B, F-1, T-1, 2)        
         mx_hat = torch.norm(sx_hat, p=2, dim=-1) # (B, F-1, T-1)
         
         # istft
@@ -336,18 +330,14 @@ class ResUNetDecouple(nn.Module):
         
         # postnet
         x0 = sum([f(x0) for f in self.postnet])
+        x0 = F.leaky_relu(x0)
         
         # output
-        mx_hat1 = torch.sigmoid(self.mask(x0).squeeze(1).transpose(1,2)) * my # (B, F-1, T)
-        P = F.normalize(self.twiddle(x0).transpose(1,3), p=2.0, dim=-1, eps=1e-7) # (B, F-1, T, 2)
-        real, imag = py[..., 0] * P[..., 0] - py[..., 1] * P[..., 1], py[..., 1] * P[..., 0] + py[..., 0] * P[..., 1]
-        sx_hat1 = torch.stack((real*mx_hat1, imag*mx_hat1), dim=-1) #(B, F-1, T, 2)
-        
-        mx_hat2 = F.relu(self.mag(x0).squeeze(1).transpose(1,2))  # (B, F-1, T)
-        px_hat2 = F.normalize(self.phase(x0).transpose(1,3), p=2.0, dim=-1, eps=1e-7) # (B, F-1, T, 2)
-        sx_hat2 = mx_hat2.unsqueeze(-1) * px_hat2
-        
-        sx_hat = sx_hat1 + sx_hat2 # (B, F-1, T, 2)
+        mx_hat = torch.sigmoid(self.mask(x0).squeeze(1).transpose(1,2)) * my # (B, F-1, T-1)
+        P = F.normalize(self.twiddle(x0).transpose(1,3), p=2.0, dim=-1, eps=1e-7) # (B, F-1, T-1, 2)
+        real = (py[..., 0] * P[..., 0] - py[..., 1] * P[..., 1]).contiguous()
+        imag = (py[..., 1] * P[..., 0] + py[..., 0] * P[..., 1]).contiguous()
+        sx_hat = torch.stack((real*mx_hat, imag*mx_hat), dim=-1) #(B, F-1, T-1, 2)        
         
         # istft
         x_hat = self._istft(F.pad(sx_hat, (0, 0, 0, 0, 0, 1))) # (B, T*hop_size)
