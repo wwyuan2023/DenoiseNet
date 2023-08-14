@@ -1,0 +1,86 @@
+# You need to change the setting depneding on your dataset.
+
+###########################################################
+#                FEATURE EXTRACTION SETTING               #
+###########################################################
+
+sampling_rate: &sampling_rate
+    24000
+fft_size: &fft_size
+    1024
+hop_size: &hop_size
+    256
+downsample_factors: &downsample_factors
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+
+###########################################################
+#         GENERATOR NETWORK ARCHITECTURE SETTING          #
+###########################################################
+generator_type: "ResUNetDecouple"
+generator_params:
+    sampling_rate: *sampling_rate
+    fft_size: *fft_size
+    hop_size: *hop_size
+    downsample_factors: *downsample_factors
+
+
+###########################################################
+#                   STFT LOSS SETTING                     #
+###########################################################
+stft_loss_params:
+    fft_sizes: [256, 512, 1024, 2048]
+    hop_sizes: [64, 128, 256, 512]
+    win_sizes: [256, 512, 1024, 2048]
+    window: "hann_window"
+
+###########################################################
+#                       LOSS SETTING                      #
+###########################################################
+lambda_pcm: 200.0
+lambda_mag: 1.0
+lambda_spec: 1.0
+
+###########################################################
+#                  DATA LOADER SETTING                    #
+###########################################################
+batch_size: 24
+batch_max_steps: 48000
+reverb_rate: 0.2
+vocal_mixup_rate: 0.1
+noise_mixup_rate: 0.1
+pin_memory: true
+num_workers: 8
+
+###########################################################
+#             OPTIMIZER & SCHEDULER SETTING               #
+###########################################################
+
+generator_optimizer_type: "AdamW"
+generator_optimizer_params:
+    lr: 0.0008
+    weight_decay: 0.0
+
+generator_scheduler_type: "StepLR"
+generator_scheduler_params:
+    step_size: 20000
+    gamma: 0.96
+generator_grad_norm: -1
+
+###########################################################
+#                    INTERVAL SETTING                     #
+###########################################################
+train_max_steps: 1000000
+save_interval_steps: 1000
+eval_interval_steps: 10000
+log_interval_steps: 1000
+
+###########################################################
+#                     OTHER SETTING                       #
+###########################################################
+num_save_intermediate_results: 8
+
