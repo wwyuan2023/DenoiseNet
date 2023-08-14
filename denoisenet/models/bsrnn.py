@@ -228,9 +228,10 @@ class BSRNN(nn.Module):
     
     @torch.no_grad()
     def infer(self, y, tta=False, segment_seconds=4):
-        # y: mixture signal, shape=(B, t), t=audio length        
+        # y: mixture signal, shape=(B, t), t=audio length
+        assert segment_seconds > 2       
         segment_length = int(segment_seconds * self.sampling_rate)
-        hop_length = segment_length // 2
+        hop_length = int(1 * self.sampling_rate)
         overlap_length = segment_length - hop_length
         window = torch.hann_window(overlap_length*2).to(y.device)
         inc_window, dec_window = window[:overlap_length].unsqueeze(0), window[overlap_length:].unsqueeze(0)
