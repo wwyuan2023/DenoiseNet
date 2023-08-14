@@ -238,11 +238,12 @@ class BSRNN(nn.Module):
         
         # valid length
         batch_size, orig_length = y.size()
-        pad_length = overlap_length - (orig_length % segment_length)
+        pad_length = segment_length - orig_length % segment_length
         if pad_length < 0: pad_length += segment_length
         pad0 = pad_length // 2
         pad1 = pad_length - pad0
         y = F.pad(y, (pad0, pad1))
+        assert y.size(1) % hop_length == 0
         
         # split segments
         start, end = 0, segment_length
