@@ -186,7 +186,7 @@ def main():
             sf.write(os.path.join(args.outdir, f"{utt_id}.wav"),
                 x, sampling_rate, "PCM_16")
             
-            rtf = (time.time() - start) / ((x.ndim * len(x) * sampling_rate))
+            rtf = (time.time() - start) / (x.ndim * len(x) / sampling_rate)
             pbar.set_postfix({"RTF": rtf})
             total_rtf += rtf
 

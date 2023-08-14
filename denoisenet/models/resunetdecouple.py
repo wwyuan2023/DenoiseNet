@@ -266,7 +266,7 @@ class ResUNetDecouple(nn.Module):
         x0 = self.decoder1(x1, e1)
         
         # postnet
-        x0 = sum([f(x0) for f in self.postnet])
+        x0 = sum([x0] + [f(x0) for f in self.postnet])
         x0 = F.leaky_relu(x0)
         
         # output
@@ -329,7 +329,7 @@ class ResUNetDecouple(nn.Module):
         x0 = self.decoder1(x1, e1)
         
         # postnet
-        x0 = sum([f(x0) for f in self.postnet])
+        x0 = sum([x0] + [f(x0) for f in self.postnet])
         x0 = F.leaky_relu(x0)
         
         # output
