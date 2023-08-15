@@ -164,7 +164,7 @@ def main():
             if sr != sampling_rate:
                 y = librosa.resample(y, orig_sr=sr, target_sr=sampling_rate, axis=0)
             y = y.T if y.ndim == 2 else y.reshape(1, -1) # (B=C, T)
-            y /= abs(y).max()
+            y /= abs(y).max() * 2
             
             # inference
             y = torch.from_numpy(y)
