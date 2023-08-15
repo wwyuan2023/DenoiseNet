@@ -142,10 +142,8 @@ class AudioSCPDataset(Dataset):
             elif np.random.uniform() < self.vocal_mixup_rate:
                 _, _, vocal, alpha = self._do_mix(vocal, self.cache_vocal[idx], alpha=np.random.uniform(0.9, 1.0))
                 clean *= alpha[0]
-            elif np.random.uniform() < 0.5:
-                _, _, self.cache_vocal[idx], _ = self._do_mix(vocal, self.cache_vocal[idx], alpha=np.random.uniform(0.0, 0.5))
             else:
-                self.cache_vocal[idx] = None
+                _, _, self.cache_vocal[idx], _ = self._do_mix(vocal, self.cache_vocal[idx], alpha=np.random.uniform(0.0, 0.1))
                 
         return vocal, clean
     
