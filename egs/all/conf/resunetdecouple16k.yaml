@@ -51,8 +51,8 @@ lambda_spec: 0.0
 batch_size: 24
 batch_max_steps: 64000
 reverb_rate: 0.2
-vocal_mixup_rate: 0
-noise_mixup_rate: 0
+vocal_mixup_rate: 0.2
+noise_mixup_rate: 0.2
 pin_memory: true
 num_workers: 8
 

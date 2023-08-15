@@ -135,16 +135,18 @@ class AudioSCPDataset(Dataset):
             vocal, _ = torchaudio.sox_effects.apply_effects_tensor(vocal, self.sampling_rate_needed, effects)
         
         # Homologous mixture
-        if self.vocal_mixup_rate > 0:
+        elif self.vocal_mixup_rate > 0:
             idx = np.random.randint(0, len(self.cache_vocal))
-            if np.random.uniform() < self.vocal_mixup_rate and self.cache_vocal[idx] is not None:
-                _, _, vocal, alpha = self._do_mix(vocal, self.cache_vocal[idx], alpha=np.random.uniform(0.7, 0.9))
-                clean *= alpha[0]
-            elif self.cache_vocal[idx] is None or np.random.uniform() < 0.1:
+            if self.cache_vocal[idx] is None:
                 self.cache_vocal[idx] = vocal.clone()
+            elif np.random.uniform() < self.vocal_mixup_rate:
+                _, _, vocal, alpha = self._do_mix(vocal, self.cache_vocal[idx], alpha=np.random.uniform(0.9, 1.0))
+                clean *= alpha[0]
+            elif np.random.uniform() < 0.5:
+                _, _, self.cache_vocal[idx], _ = self._do_mix(vocal, self.cache_vocal[idx], alpha=np.random.uniform(0.0, 0.5))
             else:
-                _, _, self.cache_vocal[idx], _ = self._do_mix(vocal, self.cache_vocal[idx], alpha=np.random.uniform(0.1, 0.9))
-        
+                self.cache_vocal[idx] = None
+                
         return vocal, clean
     
     def _noise_data_augment(self, noise):
@@ -153,12 +155,14 @@ class AudioSCPDataset(Dataset):
         # Homologous mixture
         if self.noise_mixup_rate > 0:
             idx = np.random.randint(0, len(self.cache_noise))
-            if np.random.uniform() < self.noise_mixup_rate and self.cache_noise[idx] is not None:
-                _, _, noise, _ = self._do_mix(noise, self.cache_noise[idx], alpha=np.random.uniform(0.1, 0.9))
-            elif self.cache_noise[idx] is None or np.random.uniform() < 0.1:
+            if self.cache_noise[idx] is None:
                 self.cache_noise[idx] = noise.clone()
+            elif np.random.uniform() < self.noise_mixup_rate:
+                _, _, noise, _ = self._do_mix(noise, self.cache_noise[idx], alpha=np.random.uniform(0.7, 1.0))
+            elif np.random.uniform() < 0.5:
+                _, _, self.cache_noise[idx], _ = self._do_mix(noise, self.cache_noise[idx], alpha=np.random.uniform(0.0, 0.5))
             else:
-                _, _, self.cache_noise[idx], _ = self._do_mix(noise, self.cache_noise[idx], alpha=np.random.uniform(0.1, 0.9))
+                self.cache_noise[idx] = None
         
         return noise
     
@@ -198,7 +202,7 @@ class AudioSCPDataset(Dataset):
 
         # Mix vocal and noise, shape=(T,)
         if np.random.uniform() < 0.75:
-            _, _, mixture, alpha = self._do_mix(vocal, noise, alpha=np.random.uniform(0.6, 0.9))
+            _, _, mixture, alpha = self._do_mix(vocal, noise, alpha=np.random.uniform(0.6, 1.0))
             clean *= alpha[0]
         else:
             mixture = vocal
