@@ -70,7 +70,7 @@ class _MaskEstimation(nn.Module):
 
 
 class _BandSplitRNNBlock(nn.Module):
-    def __init__(self, N=128, hidden_size=256, groups=8, dropout=0.1):
+    def __init__(self, N=128, hidden_size=256, groups=8, dropout=0):
         super().__init__()
         self.group_norm = nn.GroupNorm(groups, N)
 
@@ -106,7 +106,7 @@ class _BandSplitRNNBlock(nn.Module):
 
 
 class _BandSplitRNN(nn.Module):
-    def __init__(self, N, K, num_layers=12, hidden_size=256, groups=8, dropout=0.1):
+    def __init__(self, N, K, num_layers=12, hidden_size=256, groups=8, dropout=0):
         super().__init__()
         self.num_layers = num_layers
         self.rnns = nn.ModuleList([_BandSplitRNNBlock(N, hidden_size, groups, dropout) for i in range(num_layers)])

@@ -79,8 +79,8 @@ lambda_spec: 1.0
 batch_size: 8
 batch_max_steps: 72000
 reverb_rate: 0.2
-vocal_mixup_rate: 0.1
-noise_mixup_rate: 0.1
+vocal_mixup_rate: 0
+noise_mixup_rate: 0
 pin_memory: true
 num_workers: 8
 
@@ -90,14 +90,16 @@ num_workers: 8
 
 generator_optimizer_type: "AdamW"
 generator_optimizer_params:
-    lr: 0.0008
-    weight_decay: 0.0
+    lr: 0.001
+    betas: [0.8, 0.99]
+    eps: 1.0e-9
+    weight_decay: 0.01
 
 generator_scheduler_type: "StepLR"
 generator_scheduler_params:
-    step_size: 20000
-    gamma: 0.96
-generator_grad_norm: -1
+    step_size: 100000
+    gamma: 0.98
+generator_grad_norm: 5
 
 ###########################################################
 #                    INTERVAL SETTING                     #

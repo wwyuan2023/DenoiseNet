@@ -164,17 +164,17 @@ def main():
             if sr != sampling_rate:
                 y = librosa.resample(y, orig_sr=sr, target_sr=sampling_rate, axis=0)
             y = y.T if y.ndim == 2 else y.reshape(1, -1) # (B=C, T)
-            y /= abs(y).max() * 2
+            y /= abs(y).max()
             
             # inference
             y = torch.from_numpy(y)
             x = model.infer(y, add_reverb=args.add_reverb, tta=args.tta)
             x = x.cpu().numpy()
-            x /= abs(x).max() * 2
+            x /= abs(x).max()
 
             # trim silence
             if args.trim_silence and x.shape[0] == 1:
-                _, (xs, xe) = librosa.effects.trim(x[0], top_db=30)
+                _, (xs, xe) = librosa.effects.trim(x[0], top_db=35)
                 xs -= int(0.05 * sampling_rate)
                 xe += int(0.05 * sampling_rate)
                 if xs < 0: xs = 0
