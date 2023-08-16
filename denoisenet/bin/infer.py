@@ -66,8 +66,9 @@ class NeuralDenoiseNet(object):
     @torch.no_grad()
     def infer(self, y, add_reverb=False, noise_scale=0, tta=False):
         # y: mixture of vocal and noise, dtype=Tensor, shape=(B, T)
+        B = y.size(0)
         if add_reverb:
-            y = self._add_reverb(y)
+            y = self._add_reverb(y)[:B]
         y = self._add_noise(y, noise_scale)
         x = self.model.infer(y, tta=tta)
         return x
