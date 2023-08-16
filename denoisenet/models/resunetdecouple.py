@@ -296,7 +296,7 @@ class ResUNetDecouple(nn.Module):
         y = F.pad(y, (pad0, pad1))
         
         # stft
-        sy = self._stft(y)[:, :-1] # (B, F-1, T, 2)
+        sy = self._stft(y.to(self.window.device))[:, :-1] # (B, F-1, T, 2)
         assert sy.size(2) % np.prod(self.downsample_factors) == 0
         
         # magnitude and phase

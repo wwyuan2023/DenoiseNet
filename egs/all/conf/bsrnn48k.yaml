@@ -5,28 +5,48 @@
 ###########################################################
 
 sampling_rate: &sampling_rate
-    16000
+    48000
 fft_size: &fft_size
-    1024
+    2048
 hop_size: &hop_size
-    256
-downsample_factors: &downsample_factors
-    - 2
-    - 2
-    - 2
-    - 2
-    - 2
-    - 2
+    512
+band_widths: &band_widths
+    - 15
+    - 15
+    - 15
+    - 15
+    - 20
+    - 20
+    - 20
+    - 30
+    - 30
+    - 30
+    - 30
+    - 30
+    - 30
+    - 30
+    - 30
+    - 50
+    - 50
+    - 50
+    - 50
+    - 70
+    - 70
+    - 100
+    - 100
+    - 125
 
 ###########################################################
 #         GENERATOR NETWORK ARCHITECTURE SETTING          #
 ###########################################################
-generator_type: "ResUNetDecouple"
+generator_type: "BSRNN"
 generator_params:
     sampling_rate: *sampling_rate
     fft_size: *fft_size
     hop_size: *hop_size
-    downsample_factors: *downsample_factors
+    band_widths: *band_widths
+    num_channels: 128
+    num_layers: 12
 
 
 ###########################################################
@@ -43,13 +63,13 @@ stft_loss_params:
 ###########################################################
 lambda_pcm: 200.0
 lambda_mag: 1.0
-lambda_spec: 0.0
+lambda_spec: 1.0
 
 ###########################################################
 #                  DATA LOADER SETTING                    #
 ###########################################################
-batch_size: 24
-batch_max_steps: 64000
+batch_size: 8
+batch_max_steps: 72000
 reverb_rate: 0.25
 vocal_mixup_rate: 0.0
 noise_mixup_rate: 0.2

@@ -255,29 +255,30 @@ class BSRNN(nn.Module):
             segments.append(segment)
         assert end - hop_length == y.size(1), f"{end}, {y.size()}"
         ys = torch.stack(segments, dim=0) # (S, B, L)
-        ys = ys.view(-1, ys.size(-1)) # (S*B, L)
         
-        # stft
-        sy = self._stft(ys)
-        
-        # band split
-        X = self.split(sy)
-        
-        # rnn
-        Q = self.rnn(X.transpose(1, 3))
-        
-        # mask estimation
-        M = self.masks(Q)
-        
-        # apply mask
-        sx_hat = sy * M
-        
-        # istft
-        xs_hat = self._istft(sx_hat) # (S*B, L)
-        
+        # inference by segment
+        xs_hat = torch.zeros_like(ys)
+        for i in range(ys.size(0)):
+            # stft
+            sy = self._stft(ys[i].to(self.window.device))
+            
+            # band split
+            X = self.split(sy)
+            
+            # rnn
+            Q = self.rnn(X.transpose(1, 3))
+            
+            # mask estimation
+            M = self.masks(Q)
+            
+            # apply mask
+            sx_hat = sy * M
+            
+            # istft
+            xs_hat[i] = self._istft(sx_hat).cpu() # (B, L)
+            
         # combine segments
-        assert xs_hat.size(1) == segment_length, f"{segment_length}, {xs_hat.size()}"
-        xs_hat = xs_hat.view(-1, batch_size, segment_length) # (S, B, L)
+        assert xs_hat.size(2) == segment_length, f"{segment_length}, {xs_hat.size()}"
         output = torch.zeros_like(y)
         output[:, :segment_length] = xs_hat[0]
         start = hop_length

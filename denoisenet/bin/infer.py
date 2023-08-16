@@ -56,18 +56,19 @@ class NeuralDenoiseNet(object):
 
         return audio
     
-    def _add_noise(self, audio : torch.Tensor) -> torch.Tensor:
+    def _add_noise(self, audio : torch.Tensor, gain=0) -> torch.Tensor:
         # add gaussian white noise, audio=(c, t)
-        noise = torch.rand_like(audio) * 0.01
-        return audio + noise
+        if gain > 0:
+            noise = torch.rand_like(audio) * gain
+            audio += noise
+        return audio
     
     @torch.no_grad()
-    def infer(self, y, add_reverb=False, add_noise=False, tta=False):
+    def infer(self, y, add_reverb=False, noise_scale=0, tta=False):
         # y: mixture of vocal and noise, dtype=Tensor, shape=(B, T)
         if add_reverb:
             y = self._add_reverb(y)
-        if add_noise:
-            y = self._add_noise(y)
+        y = self._add_noise(y, noise_scale)
         x = self.model.infer(y, tta=tta)
         return x
 
@@ -103,10 +104,10 @@ def main():
                              "it will be searched in the checkpoint directory. (default=None)")
     parser.add_argument("--add-reverb", default=False, action='store_true',
                         help="add reverb to input wav when inference.")
-    parser.add_argument("--add-noise", default=False, action='store_true',
-                        help="add gaussian white noise to input wav when inference.")
     parser.add_argument("--trim-silence", "--trim-sil", default=False, action='store_true',
                         help="trim silence of header and tailer after inference.")
+    parser.add_argument("--noise-scale", default=0, type=float,
+                        help="gaussian white noise scale, add to input wav when inference. (default=0)")
     parser.add_argument("--device", default="cpu", type=str,
                         help="use cpu or cuda. (default=cpu)")
     parser.add_argument("--tta", default=False, action='store_true',
@@ -177,7 +178,7 @@ def main():
             
             # inference
             y = torch.from_numpy(y)
-            x = model.infer(y, add_reverb=args.add_reverb, add_noise=args.add_noise, tta=args.tta)
+            x = model.infer(y, add_reverb=args.add_reverb, noise_scale=args.noise_scale, tta=args.tta)
             x = x.cpu().numpy()
             x /= abs(x).max()
 
