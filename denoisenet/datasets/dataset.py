@@ -157,10 +157,8 @@ class AudioSCPDataset(Dataset):
                 self.cache_noise[idx] = noise.clone()
             elif np.random.uniform() < self.noise_mixup_rate:
                 _, _, noise, _ = self._do_mix(noise, self.cache_noise[idx], alpha=np.random.uniform(0.7, 1.0))
-            elif np.random.uniform() < 0.5:
-                _, _, self.cache_noise[idx], _ = self._do_mix(noise, self.cache_noise[idx], alpha=np.random.uniform(0.0, 0.5))
             else:
-                self.cache_noise[idx] = None
+                _, _, self.cache_noise[idx], _ = self._do_mix(noise, self.cache_noise[idx], alpha=np.random.uniform(0.0, 0.5))
         
         return noise
     
