@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+# refer to: https://arxiv.org/pdf/2109.05418.pdf
+
 class _RCBlock(nn.Module):
     def __init__(self, in_channels, kernel_size=(3,3), act_func="LeakyReLU", act_params={}):
         super().__init__()

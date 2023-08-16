@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+# refer to: https://arxiv.org/pdf/2209.15174.pdf
+
+
 class _BandSplit(nn.Module):
     def __init__(self, band_widths, N=128):
         super().__init__()

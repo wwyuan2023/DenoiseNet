@@ -18,7 +18,7 @@ if LooseVersion(sys.version) < LooseVersion("3.6"):
 
 requirements = {
     "install": [
-        "torch",
+        "torch>=1.6",
         "torchaudio",
         "setuptools>=38.5.1",
         "PyYAML>=3.12",
@@ -50,7 +50,7 @@ extras_require = {k: v for k, v in requirements.items()
 dirname = os.path.dirname(__file__)
 setup(name="denoisenet",
       version="1.0.0",
-      url="http://gitlab.com/wwy2023/DenoiseNet.git",
+      url="http://github.com/wwyuan2023/DenoiseNet.git",
       author="wuwen.yww",
       author_email="yuanwuwen@126.com",
       description="DenoiseNet implementation",
