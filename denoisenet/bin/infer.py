@@ -70,6 +70,7 @@ class NeuralDenoiseNet(object):
         if add_reverb:
             y = self._add_reverb(y)[:B]
         y = self._add_noise(y, noise_scale)
+        y = y / y.max()
         x = self.model.infer(y, tta=tta)
         return x
 
