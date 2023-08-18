@@ -184,20 +184,27 @@ def main():
             x /= abs(x).max()
 
             # trim silence
-            if args.trim_silence and x.shape[0] == 1:
-                _, (xs, xe) = librosa.effects.trim(x[0], top_db=35)
-                xs -= int(0.05 * sampling_rate)
-                xe += int(0.05 * sampling_rate)
-                if xs < 0: xs = 0
-                x = x[:, xs:xe]
+            if args.trim_silence:
+                xs, xe = [], []
+                for i in range(x.shape[0]):
+                    _, (s, e) = librosa.effects.trim(x[i], top_db=35)
+                    s -= int(0.05 * sampling_rate)
+                    e += int(0.05 * sampling_rate)
+                    if s < 0: s = 0
+                    xs.append(s)
+                    xe.append(e)
+                s, e = min(xs), max(xe)
+                x = x[:, s:e]
 
-            x = x.flatten() if x.shape[0] == 1 else x.T # (T, C) or (T,)
-            
             # save as PCM 16 bit wav files
-            sf.write(os.path.join(args.outdir, f"{utt_id}.wav"),
-                x, sampling_rate, "PCM_16")
+            x = x.flatten() if x.shape[0] == 1 else x.T # (T, C) or (T,)
+            if sr != sampling_rate:
+                x = librosa.resample(x, orig_sr=sampling_rate, target_sr=sr, axis=0)
             
-            rtf = (time.time() - start) / (x.ndim * len(x) / sampling_rate)
+            sf.write(os.path.join(args.outdir, f"{utt_id}.wav"),
+                x, sr, "PCM_16")
+            
+            rtf = (time.time() - start) / (len(x) / sr)
             pbar.set_postfix({"RTF": rtf})
             total_rtf += rtf
 
