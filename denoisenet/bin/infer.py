@@ -188,7 +188,7 @@ def main():
             if args.trim_silence:
                 xs, xe = [], []
                 for i in range(x.shape[0]):
-                    _, (s, e) = librosa.effects.trim(x[i], top_db=35)
+                    _, (s, e) = librosa.effects.trim(x[i], top_db=45)
                     s -= int(0.05 * sampling_rate)
                     e += int(0.05 * sampling_rate)
                     if s < 0: s = 0
