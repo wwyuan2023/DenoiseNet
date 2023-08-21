@@ -61,6 +61,7 @@ class NeuralDenoiseNet(object):
         if gain > 0:
             noise = torch.rand_like(audio) * gain
             audio += noise
+            audio = torch.clamp(audio, -1., 1.)
         return audio
     
     @torch.no_grad()
@@ -69,7 +70,7 @@ class NeuralDenoiseNet(object):
         B = y.size(0)
         if add_reverb:
             y = self._add_reverb(y)[:B]
-        y = self._add_noise(y, noise_scale)
+        y = self._add_noise(y, gain=noise_scale)
         y = y / y.max()
         x = self.model.infer(y, tta=tta)
         return x

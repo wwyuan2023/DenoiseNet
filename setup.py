@@ -49,7 +49,7 @@ extras_require = {k: v for k, v in requirements.items()
 
 dirname = os.path.dirname(__file__)
 setup(name="denoisenet",
-      version="1.0.2",
+      version="1.0.3",
       url="http://github.com/wwyuan2023/DenoiseNet.git",
       author="wuwen.yww",
       author_email="yuanwuwen@126.com",
