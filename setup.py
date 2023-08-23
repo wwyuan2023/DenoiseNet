@@ -48,8 +48,9 @@ extras_require = {k: v for k, v in requirements.items()
                   if k not in ["install", "setup"]}
 
 dirname = os.path.dirname(__file__)
+exec(open(os.path.join(dirname, "denoisenet/version.py")).read())
 setup(name="denoisenet",
-      version="1.0.3",
+      version=__version__,
       url="http://github.com/wwyuan2023/DenoiseNet.git",
       author="wuwen.yww",
       author_email="yuanwuwen@126.com",
