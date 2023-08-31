@@ -105,6 +105,8 @@ def main():
     parser.add_argument("--config", "--conf", default=None, type=str,
                         help="yaml format configuration file. if not explicitly provided, "
                              "it will be searched in the checkpoint directory. (default=None)")
+    parser.add_argument("--sampling-rate", "--sr", default=None, type=int,
+                        help="target sampling rate for stored wav file.")
     parser.add_argument("--add-reverb", default=False, action='store_true',
                         help="add reverb to input wav when inference.")
     parser.add_argument("--trim-silence", "--trim-sil", default=False, action='store_true',
@@ -200,13 +202,14 @@ def main():
 
             # save as PCM 16 bit wav files
             x = x.flatten() if x.shape[0] == 1 else x.T # (T, C) or (T,)
-            if sr != sampling_rate:
-                x = librosa.resample(x, orig_sr=sampling_rate, target_sr=sr, axis=0)
+            final_sr = sr if args.sampling_rate is None else args.sampling_rate
+            if final_sr != sampling_rate:
+                x = librosa.resample(x, orig_sr=sampling_rate, target_sr=final_sr, axis=0)
             
             sf.write(os.path.join(args.outdir, f"{utt_id}.wav"),
-                x, sr, "PCM_16")
+                x, final_sr, "PCM_16")
             
-            rtf = (time.time() - start) / (len(x) / sr)
+            rtf = (time.time() - start) / (len(x) / final_sr)
             pbar.set_postfix({"RTF": rtf})
             total_rtf += rtf
 
