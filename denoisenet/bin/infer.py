@@ -7,9 +7,17 @@ import os, sys
 import torch, torchaudio
 import yaml
 import numpy as np
+from scipy import signal
 
 import denoisenet
 from denoisenet.utils import load_model
+from denoisenet import __version__
+
+
+def butter_highpass_filter(x, sr, order=5, cuttoff=70):
+    b, a = signal.butter(order, 2*cuttoff/sr, 'highpass')
+    y = signal.filtfilt(b, a, x)
+    return y
 
 
 class NeuralDenoiseNet(object):
@@ -90,7 +98,7 @@ def main():
     
     """Run decoding process."""
     parser = argparse.ArgumentParser(
-        description="Extract vocals from noise with trained Neural DenoiseNet Generator "
+        description=f"Extract vocals from noise with trained Neural DenoiseNet Generator, version = {__version__} "
                     "(See detail in denoisenet/bin/infer.py).")
     parser.add_argument("--wav-scp", "--scp", default=None, type=str,
                         help="wav.scp file. "
@@ -111,6 +119,8 @@ def main():
                         help="add reverb to input wav when inference.")
     parser.add_argument("--trim-silence", "--trim-sil", default=False, action='store_true',
                         help="trim silence of header and tailer after inference.")
+    parser.add_argument("--highpass", default=None, type=float,
+                        help="highpass filter after inference.")
     parser.add_argument("--noise-scale", default=0, type=float,
                         help="gaussian white noise scale, add to input wav when inference. (default=0)")
     parser.add_argument("--device", default="cpu", type=str,
@@ -205,6 +215,9 @@ def main():
             final_sr = sr if args.sampling_rate is None else args.sampling_rate
             if final_sr != sampling_rate:
                 x = librosa.resample(x, orig_sr=sampling_rate, target_sr=final_sr, axis=0)
+            
+            if args.highpass is not None:
+                x = butter_highpass_filter(x, final_sr, cuttoff=args.highpass)
             
             sf.write(os.path.join(args.outdir, f"{utt_id}.wav"),
                 x, final_sr, "PCM_16")
