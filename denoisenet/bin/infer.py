@@ -16,7 +16,7 @@ from denoisenet import __version__
 
 def butter_highpass_filter(x, sr, order=5, cuttoff=70):
     b, a = signal.butter(order, 2*cuttoff/sr, 'highpass')
-    y = signal.filtfilt(b, a, x)
+    y = signal.filtfilt(b, a, x, axis=0)
     return y
 
 
@@ -214,7 +214,7 @@ def main():
             x = x.flatten() if x.shape[0] == 1 else x.T # (T, C) or (T,)
             final_sr = sr if args.sampling_rate is None else args.sampling_rate
             if final_sr != sampling_rate:
-                x = librosa.resample(x, orig_sr=sampling_rate, target_sr=final_sr, axis=0)
+                x = librosa.resample(x, orig_sr=sampling_rate, target_sr=final_sr, res_type="scipy", axis=0)
             
             if args.highpass is not None:
                 x = butter_highpass_filter(x, final_sr, cuttoff=args.highpass)
