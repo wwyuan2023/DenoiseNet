@@ -117,8 +117,8 @@ def main():
                         help="target sampling rate for stored wav file.")
     parser.add_argument("--add-reverb", default=False, action='store_true',
                         help="add reverb to input wav when inference.")
-    parser.add_argument("--trim-silence", "--trim-sil", default=False, action='store_true',
-                        help="trim silence of header and tailer after inference.")
+    parser.add_argument("--trim-silence", "--trim-sil", default=None, type=float,
+                        help="trim silence of header and tailer after inference, 45DB recommended.")
     parser.add_argument("--highpass", default=None, type=float,
                         help="highpass filter after inference.")
     parser.add_argument("--noise-scale", default=0, type=float,
@@ -198,10 +198,10 @@ def main():
             x /= abs(x).max()
 
             # trim silence
-            if args.trim_silence:
+            if args.trim_silence is not None:
                 xs, xe = [], []
                 for i in range(x.shape[0]):
-                    _, (s, e) = librosa.effects.trim(x[i], top_db=45)
+                    _, (s, e) = librosa.effects.trim(x[i], top_db=args.trim_silence)
                     s -= int(0.05 * sampling_rate)
                     e += int(0.05 * sampling_rate)
                     if s < 0: s = 0
