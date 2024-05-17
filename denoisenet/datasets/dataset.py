@@ -99,7 +99,7 @@ class AudioSCPDataset(Dataset):
             x, sr = torchaudio.load(filename, frame_offset=offset, num_frames=self.segment_size)
         else:
             x, sr = torchaudio.load(filename)  # load all samples
-            self.volmax[filename] = max(x.abs().max().item(), 1e-5) # safe guard
+            self.volmax[filename] = max(x.abs().max().item(), 0.1) # safe value
             self.durmax[filename] = x.size(1)
         
         # Check `sr` and pad `x`: (c,t)
